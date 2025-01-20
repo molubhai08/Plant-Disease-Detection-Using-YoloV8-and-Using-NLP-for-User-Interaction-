@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        nav {
+            background-color: #2ecc71;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .login-btn {
+            background-color: white;
+            color: #2ecc71;
+            padding: 0.5rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .hero {
+            min-height: calc(100vh - 4rem);
+            background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('/api/placeholder/1920/1080');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .hero h1 {
+            color: #2ecc71;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            max-width: 600px;
+        }
+
+        .upload-section {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        #upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #file-input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #2ecc71;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #27ae60;
+        }
+
+        #disease-result {
+            margin-top: 1rem;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        #voice-question-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        #voice-question-section h3 {
+            color: #2ecc71;
+            margin-bottom: 1rem;
+        }
+
+        #transcript {
+            margin: 1rem 0;
+            color: #666;
+        }
+
+        /* Added new styles for the image display */
+        #uploaded-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 1rem;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">Plant Disease Detector</div>
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+            <a href="#" class="login-btn">Login</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>Welcome to Plant Disease Detector</h1>
+        <p>Upload your plant images and get instant disease detection results. Protect your crops and ensure a healthy harvest!</p>
+        
+        <div class="upload-section">
+            <form id="upload-form" enctype="multipart/form-data">
+                <input type="file" name="file" id="file-input" required>
+                <button type="submit">Upload Image</button>
+            </form>
+            <!-- Added image element -->
+            <img id="uploaded-image" alt="Uploaded plant image">
+            <p id="disease-result"></p>
+
+            <div id="voice-question-section" style="display: none;">
+                <h3>Ask a Question Using Your Voice</h3>
+                <button id="start-recording">🎙️ Start Speaking</button>
+                <p id="transcript"></p>
+                <button id="submit-question" style="display: none;">Submit Question</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('upload-form');
+        const diseaseResult = document.getElementById('disease-result');
+        const voiceSection = document.getElementById('voice-question-section');
+        const startRecordingButton = document.getElementById('start-recording');
+        const submitQuestionButton = document.getElementById('submit-question');
+        const transcriptParagraph = document.getElementById('transcript');
+        const uploadedImage = document.getElementById('uploaded-image');
+        let recognizedText = '';
+
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    diseaseResult.textContent = `Detected Disease: ${result.disease}`;
+                    voiceSection.style.display = 'block';
+                    voiceSection.dataset.disease = result.disease;
+                    
+                    // Display the uploaded image
+                    const fileInput = document.getElementById('file-input');
+                    const file = fileInput.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            uploadedImage.src = e.target.result;
+                            uploadedImage.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                } else {
+                    diseaseResult.textContent = result.error || 'Error detecting disease.';
+                    voiceSection.style.display = 'none';
+                }
+            } catch (error) {
+                diseaseResult.textContent = 'Error uploading image.';
+            }
+        });
+
+        startRecordingButton.addEventListener('click', () => {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.continuous = false;
+
+            recognition.start();
+            transcriptParagraph.textContent = 'Listening...';
+
+            recognition.onresult = (event) => {
+                recognizedText = event.results[0][0].transcript;
+                transcriptParagraph.textContent = `Recorded:`;
+                submitQuestionButton.style.display = 'inline-block';
+            };
+
+            recognition.onerror = (event) => {
+                transcriptParagraph.textContent = `Error: ${event.error}`;
+            };
+
+            recognition.onend = () => {
+                transcriptParagraph.textContent += ' (Stopped listening)';
+            };
+        });
+
+        submitQuestionButton.addEventListener('click', async () => {
+            const disease = voiceSection.dataset.disease;
+            try {
+                const response = await fetch('/generate_answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: recognizedText, disease })
+                });
+                const result = await response.json();
+                alert(result.response || result.error);
+            } catch (error) {
+                alert('Error processing question.');
+            }
+        });
+    </script>
+</body>
+</html>
